@@ -119,7 +119,7 @@ class Deck:
         listOfCards = [('Indiana','Central'),('Nevada','South'),('Washington','West'),
                        ('Illinois','North'),('Ohio','North'),('Arkansas','Central'),
                        ('South Dakota','Central'),('Wyoming','West'),('Virginia','East'),
-                       ('Arizona','South'),('Mid Coastal','East'),('Texas','South'),
+                       ('Arizona','South'),('Midcoastal','East'),('Texas','South'),
                        ('Kentucky','South'),('Wisconsin','Central'),('Nebraska','North'),
                        ('Montana','North'),('Kansas','Central'),('New York','North'),
                        ('North Carolina','East'),('Florida','East'),('Iowa','Central'),
@@ -136,8 +136,20 @@ class Deck:
 
     def setupGame(self):
         setupCards = []
+        setupNumbers = []
         for i in range(4):
-            setupCards.append(self.deck.pop(i))
+            setupCards.append(self.deck.pop())
+        for i in range(2):
+            diceRoll = self.rollDice()
+            if diceRoll[0] != diceRoll[1]:
+               setupNumbers.append(min(diceRoll)*10+max(diceRoll))
+               setupNumbers.append(max(diceRoll)*10+min(diceRoll)) 
+            else:
+                i -= 1
+        return (setupCards, setupNumbers)
+
+    def rollDice(self):
+        return [randint(0,9), randint(0,9)]
 
 def main():
     board = Board()
@@ -150,6 +162,10 @@ def main():
     # board.showMap()
     board.availableStatesInRegions(['West'])
     print(deck.deck[0].state)
+    setupStates = deck.setupGame()
+    for i in range(len(setupStates[0])):
+        board.assignNumber(setupStates[0][i].state, setupStates[1][i])
+    board.showMap()
     
 
 if __name__ == "__main__":
