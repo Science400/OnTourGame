@@ -1,39 +1,7 @@
-# # class board
-# init
-#     create nodes
-#     create edges
-#     positions
-
-# assignNumber
-
-# showBoard
-
-# returnAvailableStatesinRegions
-
-
-
-# # class game
-# init
-#     Create Deck
-
-# autoround
-    
-# manualround
-
-# DrawCards
-
-# Roll Dice
-
-# Reshuffle Deck
-
-# # class ai
-# pass
-
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from random import randint, shuffle
-
 
 class Board:
     def __init__(self):
@@ -47,6 +15,7 @@ class Board:
 
         # Create Graph and add nodes
         self.map = nx.Graph()
+        self.directedMap = nx.DiGraph()
         # map.add_nodes_from(states)
         self.map.add_nodes_from(northeast,regions=['North','East'],value=None,isCrossed=False,isCircled=False,isStarred=False)
         self.map.add_nodes_from(southeast,regions=['South','East'],value=None,isCrossed=False,isCircled=False,isStarred=False)
@@ -54,6 +23,12 @@ class Board:
         self.map.add_nodes_from(southcentral,regions=['South','Central'],value=None,isCrossed=False,isCircled=False,isStarred=False)
         self.map.add_nodes_from(northwest,regions=['North','West'],value=None,isCrossed=False,isCircled=False,isStarred=False)
         self.map.add_nodes_from(southwest,regions=['South','West'],value=None,isCrossed=False,isCircled=False,isStarred=False)
+        self.directedMap.add_nodes_from(northeast)
+        self.directedMap.add_nodes_from(southeast)
+        self.directedMap.add_nodes_from(northcentral)
+        self.directedMap.add_nodes_from(southcentral)
+        self.directedMap.add_nodes_from(northwest)
+        self.directedMap.add_nodes_from(southwest)
         self.map.add_edges_from([('New Mexico', 'Oklahoma'), ('New Mexico', 'Arizona'), ('New Mexico', 'Texas'), ('New Mexico', 'Colorado'), 
                             ('Idaho', 'Montana'), ('Idaho', 'Oregon'), ('Idaho', 'Nevada'), ('Idaho', 'Washington'), ('Idaho', 'Utah'), ('Idaho', 'Wyoming'), 
                             ('California', 'Oregon'), ('California', 'Arizona'), ('California', 'Nevada'), 
@@ -124,6 +99,27 @@ class Board:
         plt.imshow(img)
         plt.show()
 
+    def showDirectedMap(self):
+        pos = {'New England':(2316,415),'New York':(2180,485),'Pennsylvania':(2100,633),'Midcoastal':(2204,707),'Ohio':(1893,704),'West Virginia':(1993,788),'Virginia':(2118,817),
+               'Kentucky':(1849,858),'Tennessee':(1782,969), 'North Carolina':(2147,944),'South Carolina':(2050,1050), 'Georgia':(1925,1134), 'Alabama':(1760,1153), 
+               'Mississippi':(1625,1158), 'Florida':(2028,1353),'Michigan':(1793,539), 'Indiana':(1747,728), 'Illinois':(1614,733), 'Wisconsin':(1571,468), 'Minnesota':(1376,363), 
+               'Iowa':(1433,641), 'North Dakota':(1149,330), 'South Dakota':(1153,493), 'Nebraska':(1152,666),'Missouri':(1490,853), 'Kansas':(1235,836),'Arkansas':(1487,1050), 
+               'Oklahoma':(1281,1020), 'Louisiana':(1495,1258), 'Texas':(1206,1245),'Washington':(394,225), 'Oregon':(324,395),'Idaho':(575,471),'Montana':(794,328), 
+               'Wyoming':(843,550),'California':(261,815), 'Nevada':(429,693), 'Utah':(638,747),'Colorado':(905,790), 'Arizona':(605,999), 'New Mexico':(851,1045)}
+        valuesDict = nx.get_node_attributes(self.directedMap, 'value')
+        # circledStates = nx.get_node_attributes(self.map, 'isCircled')
+        shadedStates = []
+        for node in self.directedMap:
+            if self.directedMap.nodes[node]['isCircled'] == True:
+                shadedStates.append('#bbbbbb')
+            else:
+                shadedStates.append('#ffffff')
+
+        nx.draw(self.directedMap,pos,labels=valuesDict,node_color=shadedStates,arrows=True)
+        img = mpimg.imread('mapImage.jpg')
+        plt.imshow(img)
+        plt.show()
+
     def availableStatesInRegions(self, regions):
         availableStates = []
         for state in self.map:
@@ -139,6 +135,75 @@ class Board:
             if self.map.nodes[state]['value'] == None:
                 statesWithoutNumber.append(state)
         return statesWithoutNumber
+
+    def calculateScore(self):
+        for u,v in self.map.edges():
+            uValue = self.map.nodes[u]['value']
+            vValue = self.map.nodes[v]['value']
+            if isinstance(uValue, int) and isinstance(vValue, int):
+                if uValue > vValue:
+                    self.directedMap.add_edge(v,u)
+                elif vValue > uValue:
+                    self.directedMap.add_edge(u,v)
+                elif uValue == vValue:
+                    self.directedMap.add_edge(u,v)
+                    self.directedMap.add_edge(v,u)
+            elif uValue == '★' or vValue == '★':
+                self.directedMap.add_edge(u,v)
+                self.directedMap.add_edge(v,u)
+        for node in self.directedMap:
+            self.directedMap.nodes[node]['value'] = self.map.nodes[node]['value']
+            self.directedMap.nodes[node]['isCircled'] = self.map.nodes[node]['isCircled']
+        valuesDict = nx.get_node_attributes(self.directedMap, 'value')
+        unsortedList = valuesDict.items()
+        unsortedStates = []
+        wildStates = []
+        for node in unsortedList:
+            if type(node[1]) is int:
+                unsortedStates.append(node)
+            elif node[1] == '★':
+                wildStates.append(node[0])
+        sortedValues = [x[0] for x in sorted(unsortedStates, key=lambda x: x[1])]
+        currentPath = []
+        currentScore = 0
+        maxPath = []
+        maxScore = 0
+        start = sortedValues[0]
+        visited = []
+        stack = sortedValues
+        stack.reverse()
+        visited.append(start)
+        stack.append(start)
+        self.showDirectedMap()
+        # while stack:
+        #     curr = stack.pop()
+        #     if curr in visited:
+        #         currentPath.pop()
+        #     currentPath.append(curr)
+        #     if self.directedMap.nodes[curr]['isCircled']:
+        #         currentScore += 2
+        #     elif not self.directedMap.nodes[curr]['isCircled']:
+        #         currentScore += 1
+        #     for neigh in self.directedMap[curr]:
+        #         if neigh not in visited:
+        #             visited.append(neigh)
+        #             stack.append(neigh)
+        currentPath.append(sortedValues[0])
+        currentScore += self.addScore(currentPath[0])
+        for state in sortedValues:
+            if state not in visited:
+                neighbors = self.directedMap[state]
+
+                    if neighbors is not None:
+                        pass
+
+
+    def addScore(self, stateToAdd):
+        if self.directedMap.nodes[stateToAdd]['isCircled'] == True:
+            return 2
+        elif self.directedMap.nodes[stateToAdd]['isCircled'] == False:
+            return 1
+
 
 class Card:
     def __init__(self,state,region):
@@ -259,8 +324,9 @@ def main():
     finalRoll = deck.rollDice()
     for i, state in enumerate(board.statesWithoutNumber()):
         board.assignNumber(state, finalRoll[i])
+    board.calculateScore()
     board.showMap()
-    
+   
 
 if __name__ == "__main__":
     main()
